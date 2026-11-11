@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<style>body{margin:0}img{max-width:100%}</style>
+<title>PANINO Заказы</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Forum&family=Golos+Text:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap">
+<style>
+/* Простая учётная таблица: кафе строками; крупные слова вместо терминов. Классика = зелёный, Пепперони = красный (как на упаковке) */
+:root{
+  --bg:#FFF7EF; --card:#FFEEDC; --ink:#16181D; --muted:#6B6458; --line:#F2D6B8; --head:#FFF5EA;
+  --shadow:0 1px 2px rgba(16,24,40,.04),0 6px 20px rgba(16,24,40,.06);
+  --pattern:url(img/pattern-light.svg);
+  --red:#C8261F; --red-soft:#FBE7E5;
+  --green:#4E9A2A; --green-ink:#2F6B17; --green-soft:#EAF4E2;
+  --amber:#93590A; --amber-soft:#FCEFD9;
+  --blue-soft:#E8F0FB; --blue-ink:#1F4E8C;
+  --on-accent:#FFFFFF;
+  --f-display:"Forum","Times New Roman",serif;
+  --f-body:"Golos Text",-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#171513;--card:#211E1B;--ink:#F1ECE6;--muted:#A99F94;--line:#36302A;--head:#1C1917;
+  --red:#E5554C;--red-soft:#3A1F1C;--green:#7CC456;--green-ink:#9BD67B;--green-soft:#1E2E17;
+  --amber:#F0B45A;--amber-soft:#3A2C15;--blue-soft:#1A2638;--blue-ink:#9CC0F0;--shadow:0 1px 2px rgba(0,0,0,.3);--pattern:url(img/pattern-dark.svg);color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#171513;--card:#211E1B;--ink:#F1ECE6;--muted:#A99F94;--line:#36302A;--head:#1C1917;
+  --red:#E5554C;--red-soft:#3A1F1C;--green:#7CC456;--green-ink:#9BD67B;--green-soft:#1E2E17;
+  --amber:#F0B45A;--amber-soft:#3A2C15;--blue-soft:#1A2638;--blue-ink:#9CC0F0;--shadow:0 1px 2px rgba(0,0,0,.3);--pattern:url(img/pattern-dark.svg);color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+/* Фон: бледный узор «кафе и доставка» поверх светлого цвета; блоки лежат на белых карточках, поэтому узор не мешает */
+body{background:var(--pattern) 0 0/320px 320px repeat fixed,var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.app{max-width:760px;margin:0 auto}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+button:focus-visible,select:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in srgb,var(--bg) 82%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);padding-block:14px 12px;margin-inline:-16px;padding-inline:16px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.logo{font-family:var(--f-display);font-size:32px;letter-spacing:.14em;color:var(--red);line-height:1}
+.date{font-size:13px;color:var(--muted);text-align:right}
+.date b{display:block;color:var(--ink);font-size:14px}
+.roles{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:6px;margin-top:14px;box-shadow:var(--shadow)}
+.roles button{padding:10px 4px;border-radius:13px;font-weight:700;font-size:15px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;line-height:1.15;position:relative;transition:background .15s,color .15s}
+.roles button svg{width:24px;height:24px}
+.roles button[aria-selected="true"]{background:var(--red)!important;color:var(--on-accent)!important;box-shadow:0 6px 16px color-mix(in srgb,var(--red) 30%,transparent)}
+.roles button[aria-selected="true"] .badge{background:var(--on-accent);color:var(--red)}
+.roles button small{font-weight:500;font-size:11px}
+.roles button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+.badge{position:absolute;top:4px;right:8px;min-width:18px;height:18px;border-radius:9px;background:var(--red);color:var(--on-accent);font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 5px}
+
+.who-sees{display:flex;gap:10px;align-items:flex-start;background:var(--blue-soft);color:var(--ink);border-radius:16px;padding:12px 14px;font-size:15px;margin-top:6px}
+.who-sees b{color:var(--blue-ink)}
+.who-sees svg{width:20px;height:20px;flex:none;color:var(--blue-ink);margin-top:1px}
+
+h2{font-size:22px;font-weight:700;margin:28px 0 4px;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:14px;margin:0 0 12px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+
+.tag{display:inline-flex;align-items:center;gap:6px;font-weight:600}
+.dot{width:10px;height:10px;border-radius:3px;flex:none}
+.dot.cl{background:var(--green)} .dot.pe{background:var(--red)}
+.th-img{width:30px;height:30px;border-radius:50%;object-fit:cover;vertical-align:middle;border:2px solid var(--line)}
+.th-img.cl{border-color:var(--green)} .th-img.pe{border-color:var(--red)}
+.legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font-size:13px;color:var(--muted);margin-bottom:10px}
+.legend .tag{color:var(--ink)} .legend .th-img{width:24px;height:24px}
+
+.sum{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}
+.sum>div{padding:14px 16px;display:grid;gap:2px}
+.sum span{font-size:13px;color:var(--muted);display:block}
+.sum b{font-size:28px;letter-spacing:-.02em;line-height:1.15}
+.ki{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;margin-bottom:6px}
+.ki svg{width:20px;height:20px}
+.ki.a{background:var(--blue-soft);color:var(--blue-ink)} .ki.b{background:var(--amber-soft);color:var(--amber)}
+.ki.c{background:var(--red-soft);color:var(--red)} .ki.d{background:var(--green-soft);color:var(--green-ink)}
+@media (min-width:640px){.sum{grid-template-columns:repeat(4,1fr)}}
+
+/* Поиск, список кафе, фильтры */
+.tools{display:grid;gap:10px;margin-top:16px}
+.search{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:2px 14px;box-shadow:var(--shadow)}
+.search svg{width:18px;height:18px;color:var(--muted);flex:none}
+.search input{flex:1;min-width:0;border:0;background:none;padding:12px 0;font-size:16px;color:var(--ink);outline:none}
+.search:focus-within{border-color:var(--ink)}
+.lbl{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{padding:9px 14px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-size:14px;font-weight:600;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+.chips button span{color:var(--muted);font-weight:700;margin-left:2px}
+.chips button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chips button[aria-pressed="true"] span{color:inherit;opacity:.75}
+.chips.cafes button{font-weight:500}
+.chips.cafes button i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--line);vertical-align:1px}
+.chips.cafes button i.ordered,.chips.cafes button i.wait{background:var(--amber)}
+.chips.cafes button i.ok{background:var(--green)}
+.empty{padding:18px;text-align:center;color:var(--muted);font-size:14px}
+
+/* Таблица */
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:18px;background:var(--card);box-shadow:var(--shadow)}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th{background:var(--head);font-size:13px;font-weight:600;color:var(--muted);text-align:left;padding:12px 10px;border-bottom:1px solid var(--line);line-height:1.2}
+td{padding:13px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tbody tr:hover td{background:var(--head)}
+td:first-child{width:46%}
+tr:last-child td{border-bottom:0}
+td.c,th.c{text-align:center} td.r,th.r{text-align:right}
+td .addr{display:block;font-size:12px;color:var(--muted)}
+td b{font-weight:600}
+tr.done td{background:color-mix(in srgb,var(--green-soft) 45%,transparent)}
+tfoot td{background:var(--head);font-weight:700;border-top:1px solid var(--line)}
+.dash{color:var(--muted);opacity:.5}
+.st{display:inline-block;font-size:12px;font-weight:600;padding:3px 8px;border-radius:999px;white-space:nowrap;margin-top:4px}
+.st.go{background:var(--amber-soft);color:var(--amber)}
+.st.ok{background:var(--green-soft);color:var(--green-ink)}
+.st.no{background:var(--head);color:var(--muted);border:1px solid var(--line)}
+.ret{color:var(--red);font-weight:600}
+.rsub{display:block;font-size:11px;font-weight:700;color:var(--red);line-height:1.1}
+.lnk{color:var(--red);font-weight:600;font-size:13px;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
+
+.cnt{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:14px;background:var(--head);flex:none}
+.cnt button{width:42px;height:42px;font-size:22px;font-weight:600;color:var(--red)}
+.cnt output{min-width:30px;text-align:center;font-weight:700;font-size:16px}
+
+/* Кафе */
+.pick{display:flex;align-items:center;gap:10px;padding:10px 12px;margin-top:12px}
+.pick label{font-size:13px;color:var(--muted);flex:none}
+.pick select{flex:1;min-width:0;padding:9px 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);font-weight:600}
+.prod{display:flex;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid var(--line)}
+.prod:last-child{border-bottom:0}
+.prod img{width:64px;height:64px;object-fit:cover;border-radius:10px;flex:none;background:var(--head)}
+.prod .t{flex:1;min-width:0}
+.prod .t span{display:block;font-size:12px;color:var(--muted)}
+.btn{width:100%;padding:16px;border-radius:16px;font-weight:700;font-size:17px;background:var(--red);color:var(--on-accent);margin-top:14px;box-shadow:0 8px 20px color-mix(in srgb,var(--red) 28%,transparent)}
+.btn.gr{box-shadow:0 8px 20px color-mix(in srgb,var(--green-ink) 28%,transparent)}
+.btn.line,.btn[disabled]{box-shadow:none}
+/* Кафе: крупные карточки товаров, как в магазине */
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pcard{overflow:hidden;display:flex;flex-direction:column}
+.pcard img{width:100%;aspect-ratio:1/1;object-fit:cover;background:var(--head);display:block}
+.pcard .pb{padding:12px 12px 14px;display:flex;flex-direction:column;gap:4px;flex:1}
+.pcard .pb>span{font-size:13px;color:var(--muted);flex:1}
+.pcard .pr{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:8px;flex-wrap:wrap}
+.pcard .pr b{font-size:18px}
+.pcard .cnt button{width:36px;height:38px}
+.pcard .cnt output{min-width:24px}
+.btn.gr{background:var(--green-ink)}
+.btn.line{background:var(--card);color:var(--ink);border:1px solid var(--line);font-weight:600;font-size:15px}
+.btn[disabled]{background:var(--line);color:var(--muted);cursor:default}
+.msg{padding:12px 14px;font-size:14px}
+.msg.ok{background:var(--green-soft);border-color:transparent}
+.msg.go{background:var(--amber-soft);border-color:transparent}
+.msg.ask{border:2px solid var(--red)}
+.lines{display:grid;gap:4px;margin:8px 0 0}
+.lines div{display:flex;justify-content:space-between;gap:10px}
+.lines .tot{font-weight:700;font-size:16px;border-top:1px dashed var(--line);padding-top:6px;margin-top:2px}
+
+/* Курьер */
+.next{padding:14px;border:2px solid var(--ink)}
+.next .k{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.next h3{margin:4px 0 0;font-size:20px}
+.next .a{color:var(--muted);font-size:14px}
+.give{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.give div{background:var(--head);border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;align-items:center;gap:8px}
+.give b{font-size:22px;margin-left:auto}
+.back{margin-top:14px}
+.back p{margin:0 0 6px;font-size:14px;font-weight:600}
+.back .row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0}
+.allr{padding:4px 14px}
+.allr .li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.allr .li:last-child{border-bottom:0}
+.allr .li span.a{display:block;font-size:12px;color:var(--muted)}
+.allr .li .st{margin:0}
+
+/* Накладная */
+.sheet{position:fixed;inset:0;z-index:20;background:rgba(15,12,10,.5);display:flex;align-items:flex-end;justify-content:center;
+  padding:12px max(12px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px))}
+.inv{background:var(--card);width:100%;max-width:440px;border-radius:16px;padding:18px;max-height:90vh;overflow:auto}
+.inv .hd{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--ink);padding-bottom:8px}
+.inv .hd .logo{font-size:22px}
+.inv .meta{font-size:13px;color:var(--muted);margin:10px 0 4px}
+.inv .meta b{color:var(--ink)}
+.inv td,.inv th{padding:8px 4px}
+.inv td:first-child{width:auto}
+.inv .pay{display:flex;justify-content:space-between;font-size:18px;font-weight:700;border-top:2px solid var(--ink);padding-top:8px;margin-top:6px}
+.inv .ln{display:flex;justify-content:space-between;font-size:14px;margin-top:6px}
+.inv .sg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;font-size:12px;color:var(--muted)}
+.inv .sg div{border:1px solid var(--line);border-radius:8px;padding:8px}
+.inv .sg b{display:block;color:var(--green-ink);font-size:13px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;z-index:30;max-width:calc(100% - 32px)}
+a.btn.maplink{display:block;text-align:center;text-decoration:none;margin-top:10px}
+.next a.btn.maplink{margin:10px 0 2px;padding:11px;font-size:15px}
+.foot{font-size:12px;color:var(--muted);margin-top:18px;text-align:center;display:grid;gap:8px;justify-items:center}
+.foot button{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 14px;font-weight:600;font-size:13px;color:var(--ink)}
+@media (max-width:520px){.sum b{font-size:22px} th,td{padding:11px 4px} th:first-child,td:first-child{padding-left:10px} th:last-child,td:last-child{padding-right:10px}
+  td:first-child{width:auto} .th-img{width:26px;height:26px} table{font-size:13px} .lnk{font-size:12px} td .st{font-size:11px;padding:2px 6px}}
+/* ===== Тема «тёплая доставка» (копия app/pb_public/theme.css) ===== */
+/* Тема «тёплая доставка» (по образцу Tortilla): бежевый фон, терракотовый акцент, белые мягкие карточки,
+   узкий жирный Oswald для баннеров и цифр. Подключается после app.css — чтобы вернуть прежний вид, убрать этот файл. */
+:root{
+  --bg:#F7EEE4; --card:#FFFFFF; --head:#FBF6F0; --line:#EEDFCF;
+  --ink:#2A1C15; --muted:#7B6A5E;
+  --red:#B4532A; --red-soft:#F6E1D6;           /* терракота */
+  --green:#5C8A3E; --green-ink:#3F6B2E; --green-soft:#E7F0DF;
+  --amber:#9A5B12; --amber-soft:#FBEBD3;
+  --blue-soft:#F3E6D8; --blue-ink:#8A4A22;
+  --cream:#FFF8F1;
+  --shadow:0 1px 2px rgba(74,40,20,.05),0 8px 24px rgba(74,40,20,.07);
+  --f-head:"Oswald","Golos Text",Arial,sans-serif;
+  --pattern:none;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#1C1612;--card:#271F1A;--head:#221B17;--line:#3A2E26;--ink:#F3EADF;--muted:#B3A294;
+  --red:#E07A4F;--red-soft:#3D241A;--green-ink:#9BD67B;--green-soft:#1E2E17;--amber:#F0B45A;--amber-soft:#3A2C15;
+  --blue-soft:#2C221C;--blue-ink:#E9A27A;--cream:#241C17;--shadow:0 1px 2px rgba(0,0,0,.35);--pattern:none;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1C1612;--card:#271F1A;--head:#221B17;--line:#3A2E26;--ink:#F3EADF;--muted:#B3A294;
+  --red:#E07A4F;--red-soft:#3D241A;--green-ink:#9BD67B;--green-soft:#1E2E17;--amber:#F0B45A;--amber-soft:#3A2C15;
+  --blue-soft:#2C221C;--blue-ink:#E9A27A;--cream:#241C17;--shadow:0 1px 2px rgba(0,0,0,.35);--pattern:none;color-scheme:dark}
+
+body{background:var(--bg)}
+header{background:var(--bg)!important;-webkit-backdrop-filter:none;backdrop-filter:none;padding-block:18px 10px}
+.logo{color:var(--red);font-size:34px}
+.tagline{font-size:12px;color:var(--muted);margin-top:4px;letter-spacing:.02em}
+.date{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:7px 14px;box-shadow:var(--shadow);text-align:left}
+.date b{font-family:var(--f-head);font-weight:600;font-size:15px;letter-spacing:.02em}
+
+/* Плашка «кто я / куда везём» */
+.chip-addr{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:12px 14px;box-shadow:var(--shadow);margin-top:8px}
+.chip-addr .pin{width:38px;height:38px;border-radius:50%;background:var(--red-soft);color:var(--red);display:grid;place-items:center;flex:none}
+.chip-addr .pin svg{width:20px;height:20px}
+.chip-addr small{display:block;font-size:12px;color:var(--muted)}
+.chip-addr b{display:block;font-size:15px;line-height:1.3}
+
+/* Баннер */
+.hero{position:relative;overflow:hidden;background:var(--red);color:#FFF8F1;border-radius:26px;padding:22px 20px 20px;margin-top:14px;min-height:178px;box-shadow:0 14px 30px color-mix(in srgb,var(--red) 28%,transparent)}
+.hero h2{position:relative;z-index:1;font-family:var(--f-head);font-weight:700;font-size:27px;line-height:1.05;text-transform:uppercase;letter-spacing:.01em;margin:0;max-width:54%;color:#FFF8F1}
+.hero p{position:relative;z-index:1;margin:10px 0 16px;font-size:14px;max-width:52%;opacity:.92}
+.hero img{position:absolute;right:-44px;bottom:-22px;width:54%;max-width:250px;aspect-ratio:1/1;object-fit:cover;border-radius:50%;box-shadow:0 10px 30px rgba(0,0,0,.25);border:4px solid rgba(255,248,241,.35)}
+.hero .hero-btn{display:inline-flex;align-items:center;gap:8px;background:#FFF8F1;color:var(--red);border-radius:999px;padding:10px 16px;font-weight:700;font-size:14px;text-decoration:none;position:relative;z-index:1}
+.hero .hero-btn svg{width:16px;height:16px}
+
+/* Подсказки и блоки */
+.who-sees{background:var(--blue-soft);border-radius:18px}
+.who-sees b{color:var(--blue-ink)}
+h2{font-weight:700;letter-spacing:-.01em}
+.box,.tw{border-radius:22px;border-color:var(--line);box-shadow:var(--shadow)}
+.sum b,.give b,.inv .pay,.next h3{font-family:var(--f-head);font-weight:600;letter-spacing:.01em}
+.sum>div{border-radius:20px}
+
+/* Кнопки, чипы */
+.btn{border-radius:999px;background:var(--red);box-shadow:0 8px 20px color-mix(in srgb,var(--red) 25%,transparent)}
+.btn.line{background:var(--card);border:1px solid var(--line);box-shadow:none}
+.btn.gr{background:var(--green-ink)}
+.chips button{background:var(--card);border-color:var(--line)}
+.chips button[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:#FFF8F1}
+.mini{background:var(--head)}
+.search{border-radius:999px;background:var(--card)}
+.pay-btn.paid{background:var(--green-soft);color:var(--green-ink)}
+
+/* Карточки закусок как «Popular Picks»: фото на светлой подложке, цена и круглая «+» */
+.pgrid{gap:14px}
+.pcard{border-radius:24px;overflow:hidden;background:var(--card)}
+.pcard img{aspect-ratio:1/1;object-fit:cover;background:var(--cream);border-radius:20px;margin:8px;width:calc(100% - 16px)}
+.pcard .pb{padding:4px 14px 14px}
+.pcard .tag{font-size:16px}
+.pcard .pr b{font-family:var(--f-head);font-weight:600;font-size:20px;color:var(--ink)}
+.cnt{background:var(--head);border-color:var(--line);border-radius:999px}
+.cnt button{color:var(--red)}
+/* Количество 0 — одна круглая кнопка «+» */
+.add-one{width:40px;height:40px;border-radius:50%;background:var(--red);color:#FFF8F1;font-size:24px;font-weight:600;display:grid;place-items:center;line-height:1;box-shadow:0 6px 14px color-mix(in srgb,var(--red) 30%,transparent);flex:none}
+.add-one:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+/* Курьер */
+.next{border:0;box-shadow:var(--shadow)}
+.next .k{color:var(--red)}
+.give div{background:var(--head);border-color:var(--line)}
+.st.go{background:var(--amber-soft)}
+
+/* Накладная */
+.inv{background:var(--card);border-radius:24px}
+.inv .hd .logo{color:var(--red)}
+
+/* Экран входа */
+.login{border-radius:26px}
+.foot a{color:var(--red)}
+@media (max-width:420px){.hero h2{font-size:24px}.hero img{width:52%;right:-46px}}
+
+/* Вкладки ролей в демо — терракотовые */
+.roles{background:var(--card);border-color:var(--line);border-radius:22px;box-shadow:var(--shadow)}
+.roles button[aria-selected="true"]{background:var(--red)!important;color:#FFF8F1!important}
+.badge{background:var(--red)}
+.sum>div{background:var(--card)!important}
+</style>
+
+<div class="app">
+  <header>
+    <div class="top">
+      <div><div class="logo">PANINO</div><div class="tagline">Халяль-закуски · Махачкала</div></div>
+      <div class="date">Заказы и доставка<b id="today"></b></div>
+    </div>
+    <div class="roles" role="tablist">
+      <button role="tab" id="tab-owner" data-role="owner" aria-selected="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 10v10"/></svg>Владелец<small>всё видно</small></button>
+      <button role="tab" id="tab-cafe" data-role="cafe" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 11h1.5a2.5 2.5 0 0 1 0 5H17M8 3v3M12 3v3"/></svg>Кафе<small>заказать</small></button>
+      <button role="tab" id="tab-courier" data-role="courier" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 7h11v9H2zM13 10h4l4 3v3h-8"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>Курьер<small>развезти</small><span id="cour-badge" class="badge" hidden></span></button>
+    </div>
+  </header>
+  <main id="view"></main>
+  <div class="foot"><span>Демо-версия. Кафе и адреса придуманы для примера.</span><button id="restart">Начать демо заново</button></div>
+</div>
+<div id="sheet" class="sheet" hidden></div>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+const PRICE=150;
+const P=[
+  {id:"cl",name:"Классика",comp:"Курица, шампиньоны, моцарелла",img:"img/classic.jpg"},
+  {id:"pe",name:"Пепперони",comp:"Колбаса, моцарелла, соус",img:"img/pepperoni.jpg"}
+];
+// Придуманные кафе Махачкалы. Все данные стартуют с нуля.
+// st: none — нет заказа, ordered — заказ ждёт курьера, wait — курьер привёз, ждём подтверждения кафе, ok — получено
+const CAFES=[
+  ["Кофейня «Каспий»","ул. Дахадаева, 21"],["Barhan Coffee","пр. Расула Гамзатова, 43"],["Кафе «Утро»","пр. Имама Шамиля, 8"],
+  ["Кофейня «Чашка»","ул. Ярагского, 64"],["Кафе «Сарахан»","ул. Коркмасова, 12"],["Горец Coffee","пр. Петра I, 59"],
+  ["Кофейня «Маяк»","ул. Буйнакского, 5"],["Кафе «Зерно»","ул. М. Гаджиева, 176"],["Кафе «Нур»","пр. Акушинского, 30"],["Кофейня «Бриз»","ул. Пушкина, 14"]
+].map(([name,addr],i)=>({id:i+1,name,addr,order:null,ret:{cl:0,pe:0},st:"none",time:"",no:0,queue:0,hist:[]}));
+const S={role:"owner",cafe:1,cart:{cl:0,pe:0},f:"all",qs:"",pick:0,nextNo:1001,queue:0};
+
+const $=s=>document.querySelector(s);
+const rub=n=>n.toLocaleString("ru-RU")+" ₽";
+const q=o=>o?o.cl+o.pe:0;
+const sum=o=>q(o)*PRICE;
+const pay=c=>sum(c.order)-sum(c.ret);
+const byId=id=>CAFES.find(c=>c.id===+id);
+const now=()=>new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
+const tag=p=>`<span class="tag"><i class="dot ${p.id}"></i>${p.name}</span>`;
+const thumbs=()=>P.map(p=>`<th class="c"><img class="th-img ${p.id}" src="${p.img}" alt="${p.name}" title="${p.name}"></th>`).join("");
+const legend=()=>`<div class="legend">${P.map(p=>`<span class="tag"><img class="th-img ${p.id}" src="${p.img}" alt="">${p.name}</span>`).join("")}<span>по ${PRICE} ₽ за штуку</span></div>`;
+const EYE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const sees=t=>`<div class="who-sees">${EYE}<div>${t}</div></div>`;
+const retWhat=r=>P.filter(p=>r[p.id]).map(p=>`${p.name} ${r[p.id]}`).join(", ");
+// Процент возвратов кафе по всем его доставкам
+function retPct(c){let d=0,r=0;c.hist.forEach(h=>{d+=q(h.order);r+=q(h.ret)});return d?Math.round(r/d*100):null}
+function status(c){return {none:`<span class="st no">Нет заказа</span>`,ordered:`<span class="st go">Ждёт курьера</span>`,
+  wait:`<span class="st go">Привезли, ждём подтверждения</span>`,ok:`<span class="st ok">✓ Получили в ${c.time}</span>`}[c.st]}
+function toast(t){const e=$("#toast");e.textContent=t;e.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>e.hidden=true,2600)}
+function cnt(key,val){return `<span class="cnt"><button aria-label="Меньше" data-act="n" data-k="${key}" data-d="-1">−</button><output class="num">${val}</output><button aria-label="Больше" data-act="n" data-k="${key}" data-d="1">+</button></span>`}
+
+/* ========== ВЛАДЕЛЕЦ ========== */
+const FLT=[
+  ["all","Все",()=>true],
+  ["none","Не заказали",c=>c.st==="none"],
+  ["way","Ждут доставку",c=>c.st==="ordered"||c.st==="wait"],
+  ["ok","Получили",c=>c.st==="ok"],
+  ["ret","Много возвратов",c=>(retPct(c)??0)>=10]
+];
+function vOwner(){
+  const ordered=CAFES.filter(c=>c.st!=="none").length;
+  let del=0,ret={cl:0,pe:0},money=0;
+  CAFES.forEach(c=>c.hist.forEach(h=>{del++;ret.cl+=h.ret.cl;ret.pe+=h.ret.pe;money+=h.pay}));
+  let h=sees(`Это экран <b>владельца</b>. Все кафе в одной таблице: кто заказал, что привезли, сколько вернули и сколько заплатят.${ordered?"":" Пока заказов нет — откройте вкладку <b>«Кафе»</b> и сделайте первый заказ."}`)+
+  `<div class="sum">
+    <div class="box"><i class="ki a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6"/></svg></i><span>Заказали</span><b class="num">${ordered} из ${CAFES.length}</b></div>
+    <div class="box"><i class="ki b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 7h11v9H2zM13 10h4l4 3v3h-8"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></i><span>Доставок</span><b class="num">${del}</b></div>
+    <div class="box"><i class="ki c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-4"/></svg></i><span>Вернули</span><b class="num ret">${q(ret)} шт</b><span class="num">Классика ${ret.cl} · Пепперони ${ret.pe}</span></div>
+    <div class="box"><i class="ki d"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="13" rx="2"/><circle cx="12" cy="12.5" r="2.5"/></svg></i><span>Заплатят</span><b class="num">${rub(money)}</b></div></div>
+
+  <div class="tools">
+    <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="own-q" type="search" placeholder="Найти кафе или улицу" value="${S.qs.replace(/"/g,"&quot;")}" autocomplete="off"></label>
+    <div class="lbl">Ваши кафе — нажмите, чтобы открыть</div>
+    <div class="chips cafes">${CAFES.map(c=>`<button data-act="pickcafe" data-id="${c.id}" aria-pressed="${S.pick===c.id}"><i class="${c.st}"></i>${c.name}</button>`).join("")}</div>
+    <div class="lbl">Показать</div>
+    <div class="chips">${FLT.map(([id,l,f])=>`<button data-act="flt" data-id="${id}" aria-pressed="${!S.pick&&S.f===id}">${l} <span class="num">${CAFES.filter(f).length}</span></button>`).join("")}</div>
+  </div>
+  <div id="ot">${ownerTable()}</div>`;
+  return h;
+}
+function listed(){
+  if(S.pick) return CAFES.filter(c=>c.id===S.pick);
+  const f=FLT.find(x=>x[0]===S.f)[2], s=S.qs.trim().toLowerCase();
+  return CAFES.filter(c=>f(c)&&(!s||(c.name+" "+c.addr).toLowerCase().includes(s)));
+}
+function ownerTable(){
+  const L=listed();
+  if(!L.length) return `<div class="box empty" style="margin-top:14px">Здесь пока никого. <button class="lnk" data-act="reset">Показать все кафе</button></div>`;
+  const tot={cl:0,pe:0},rt={cl:0,pe:0};let money=0;
+  L.forEach(c=>{if(c.order){tot.cl+=c.order.cl;tot.pe+=c.order.pe}if(c.st==="ok"){rt.cl+=c.ret.cl;rt.pe+=c.ret.pe;money+=pay(c)}});
+  const shown=L.length<CAFES.length?`<p class="sub" style="margin-top:12px">Показано ${L.length} из ${CAFES.length} · <button class="lnk" data-act="reset">показать все</button></p>`:"";
+  let h=`${shown}<h2>Заказы сегодня</h2>${legend()}
+  <div class="tw"><table class="num"><thead><tr>
+    <th>Кафе</th>${thumbs()}<th class="c">Назад</th><th class="r">Сумма</th>
+  </tr></thead><tbody>`;
+  L.forEach(c=>{const ok=c.st==="ok",o=c.order,p=retPct(c);
+    h+=`<tr class="${ok?"done":""}"><td><b>${c.name}</b><span class="addr">${c.addr}</span>${status(c)}${p!==null?`<span class="addr">возвраты всего: <span class="${p>=10?"ret":""}">${p}%</span></span>`:""}</td>
+    ${P.map(pr=>`<td class="c">${o?o[pr.id]:`<span class="dash">—</span>`}${ok&&c.ret[pr.id]?`<span class="rsub">−${c.ret[pr.id]}</span>`:""}</td>`).join("")}
+    <td class="c">${ok?(q(c.ret)?`<span class="ret">${q(c.ret)}</span>`:"0"):`<span class="dash">—</span>`}</td>
+    <td class="r">${ok?`<button class="lnk" data-act="inv" data-id="${c.id}">${rub(pay(c))}</button>`:o?`<span class="addr">${rub(sum(o))}</span>`:`<span class="dash">—</span>`}</td></tr>`});
+  h+=`</tbody><tfoot><tr><td>Всего${L.length<CAFES.length?" (показано)":""}</td><td class="c">${tot.cl}</td><td class="c">${tot.pe}</td><td class="c ret">${q(rt)}</td><td class="r">${rub(money)}</td></tr></tfoot></table></div>
+  <p class="sub" style="margin-top:6px">Красная цифра под количеством — сколько этой закуски вернули. Нажмите на сумму — откроется накладная.</p>`;
+  return h;
+}
+
+/* ========== КАФЕ ========== */
+function vCafe(){
+  const c=byId(S.cafe);
+  let h=sees(`Это экран <b>кафе</b>. Кафе заказывает закуски, а когда курьер привёз — подтверждает одной кнопкой.`)+
+  `<div class="box pick"><label for="cafe-pick">Вы —</label><select id="cafe-pick">${CAFES.map(x=>`<option value="${x.id}" ${x.id===c.id?"selected":""}>${x.name}</option>`).join("")}</select></div>
+  <p class="sub" style="margin-top:6px">${c.addr}, Махачкала. В настоящем боте выбирать не нужно: кафе узнаётся само, адрес подставляется сам.</p>`;
+
+  if(c.st==="none"){
+    h+=`<h2>Заказать закуски</h2><p class="sub">${PRICE} ₽ за штуку · нажмите «+»</p>
+    <div class="pgrid">${P.map(p=>`<div class="box pcard"><img src="${p.img}" alt="${p.name}"><div class="pb">${tag(p)}<span>${p.comp}</span><div class="pr"><b class="num">${PRICE} ₽</b>${cnt(p.id,S.cart[p.id])}</div></div></div>`).join("")}</div>
+    <button class="btn" data-act="order" ${q(S.cart)?"":"disabled"}>${q(S.cart)?`Отправить заказ · ${q(S.cart)} шт · ${rub(sum(S.cart))}`:"Выберите количество"}</button>`;
+  } else if(c.st==="ordered"){
+    h+=`<h2>Ваш заказ</h2><div class="box msg go">Заказ №${c.no} принят и ждёт курьера:<div class="lines num">${P.map(p=>`<div>${tag(p)}<span>${c.order[p.id]} шт</span></div>`).join("")}<div class="tot"><span>Сумма</span><span>${rub(sum(c.order))}</span></div></div></div>
+    <button class="btn line" data-act="edit">Изменить заказ</button>`;
+  } else if(c.st==="wait"){
+    h+=`<h2>Курьер привёз заказ</h2><div class="box msg ask"><b>Всё верно?</b>
+      <div class="lines num">${P.map(p=>`<div>${tag(p)}<span>${c.order[p.id]} шт</span></div>`).join("")}
+      ${P.filter(p=>c.ret[p.id]).map(p=>`<div class="ret"><span>Возврат: ${p.name}</span><span>${c.ret[p.id]} шт · −${rub(c.ret[p.id]*PRICE)}</span></div>`).join("")}
+      <div class="tot"><span>К оплате</span><span>${rub(pay(c))}</span></div></div>
+      <button class="btn gr" data-act="confirm">Да, всё верно</button></div>`;
+  } else {
+    h+=`<h2>Ваш заказ</h2><div class="box msg ok">✓ Заказ №${c.no} получен в ${c.time}. <button class="lnk" data-act="inv" data-id="${c.id}">Накладная · ${rub(pay(c))}</button></div>
+    <button class="btn line" data-act="again">Сделать новый заказ</button>`;
+  }
+
+  h+=`<h2>Мои поставки</h2><p class="sub">Сколько привезли, сколько вернули и сколько заплатили</p>`;
+  if(!c.hist.length){h+=`<div class="box empty">Пока поставок нет. Они появятся здесь, когда курьер привезёт заказ.</div>`}
+  else{
+    const t={d:0,r:0,p:0};c.hist.forEach(x=>{t.d+=q(x.order);t.r+=q(x.ret);t.p+=x.pay});
+    h+=`<div class="tw"><table class="num"><thead><tr><th>Заказ</th><th class="c">Привезли</th><th class="c">Вернули</th><th class="r">Заплатили</th></tr></thead><tbody>
+    ${c.hist.map(x=>`<tr><td><b>№${x.no}</b> · ${x.time}${q(x.ret)?`<span class="addr ret">${retWhat(x.ret)}</span>`:""}</td><td class="c">${q(x.order)}</td><td class="c">${q(x.ret)?`<span class="ret">${q(x.ret)}</span>`:"0"}</td><td class="r">${rub(x.pay)}</td></tr>`).join("")}
+    </tbody><tfoot><tr><td>Итого</td><td class="c">${t.d}</td><td class="c ret">${t.r}</td><td class="r">${rub(t.p)}</td></tr></tfoot></table></div>`;
+  }
+  return h;
+}
+
+/* ========== КУРЬЕР ========== */
+// Точки на карте (адреса кафе в Махачкале) и цех — для маршрута в Яндекс.Картах
+const POINTS={"Кофейня «Каспий»": [42.981011, 47.506881], "Barhan Coffee": [42.979579, 47.512988], "Кафе «Утро»": [42.981065, 47.472536], "Кофейня «Чашка»": [42.972783, 47.509321], "Кафе «Сарахан»": [42.982886, 47.496133], "Горец Coffee": [42.971678, 47.53082], "Кофейня «Маяк»": [42.983648, 47.510762], "Кафе «Зерно»": [42.993486, 47.476378], "Кафе «Нур»": [42.983881, 47.472605], "Кофейня «Бриз»": [42.976714, 47.524221]};
+const BASE_POINT=[43.009577, 47.448775];
+const pt=c=>POINTS[c.name];
+const ymRoute=list=>"https://yandex.ru/maps/?rtext=~"+list.map(c=>pt(c).join(",")).join("~")+"&rtt=auto";
+function km(a,b){const r=Math.PI/180,h=Math.sin((b[0]-a[0])*r/2)**2+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin((b[1]-a[1])*r/2)**2;return 12742*Math.asin(Math.sqrt(h))}
+// Порядок объезда: от цеха каждый раз к ближайшему следующему кафе
+function byRoute(list){const left=list.filter(pt),out=[];let cur=BASE_POINT;while(left.length){let bi=0;left.forEach((c,i)=>{if(km(cur,pt(c))<km(cur,pt(left[bi])))bi=i});const[c]=left.splice(bi,1);out.push(c);cur=pt(c)}return[...out,...list.filter(c=>!pt(c))]}
+
+function vCourier(){
+  const route=CAFES.filter(c=>c.st!=="none"||c.hist.length).sort((a,b)=>(a.queue||1e9)-(b.queue||1e9));
+  const todo=byRoute(route.filter(c=>c.st==="ordered")), nxt=todo[0];
+  let h=sees(`Это экран <b>курьера</b>. Он видит, куда ехать и что отдать. На месте отмечает, сколько забрал назад, и жмёт «Доставил».`);
+  if(!route.length) return h+`<div class="box empty" style="margin-top:16px">Заказов пока нет.<br>Откройте вкладку <b>«Кафе»</b> и сделайте заказ — он сразу появится здесь.</div>
+    <button class="btn" data-act="demo-fill">Показать пример: все 10 кафе заказали</button>`;
+  if(todo.length){
+    h+=`<h2>Маршрут в Яндекс.Картах</h2><p class="sub">Точки в порядке объезда от цеха. Откроются Яндекс.Карты с готовым маршрутом.</p>
+      <a class="btn maplink" href="${ymRoute(todo.filter(pt))}" target="_blank" rel="noopener">Маршрут по всем точкам (${todo.filter(pt).length})</a>`;
+  }
+  if(nxt){
+    h+=`<h2>Следующая точка</h2><p class="sub">Осталось развезти: ${todo.length}</p>
+    <div class="box next"><div class="k">Едем сюда</div><h3>${nxt.name}</h3><div class="a">${nxt.addr}</div>
+      ${pt(nxt)?`<a class="btn line maplink" href="${ymRoute([nxt])}" target="_blank" rel="noopener">Открыть в Яндекс.Картах</a>`:""}
+      <div class="give num">${P.map(p=>`<div>${tag(p)}<b>${nxt.order[p.id]}</b></div>`).join("")}</div>
+      <div class="back"><p>Сколько непроданных забрал назад?</p>
+        ${P.map(p=>`<div class="row">${tag(p)}${cnt(nxt.id+":"+p.id,nxt.ret[p.id])}</div>`).join("")}</div>
+      <button class="btn" data-act="done" data-id="${nxt.id}">Доставил · к оплате ${rub(pay(nxt))}</button></div>`;
+  } else {
+    h+=`<div class="box empty" style="margin-top:16px"><b style="color:var(--green-ink)">✓ Все заказы развезены</b></div>`;
+  }
+  const back={cl:0,pe:0};CAFES.forEach(c=>c.hist.forEach(x=>{back.cl+=x.ret.cl;back.pe+=x.ret.pe}));
+  CAFES.filter(c=>c.st==="wait").forEach(c=>{back.cl+=c.ret.cl;back.pe+=c.ret.pe});
+  h+=`<h2>Возврат в машине</h2><p class="sub">Это нужно сдать в цех в конце дня</p>
+  <div class="give num">${P.map(p=>`<div class="box">${tag(p)}<b class="ret">${back[p.id]}</b></div>`).join("")}</div>
+  <h2>Мой маршрут</h2><div class="box allr">`;
+  [...todo,...route.filter(c=>c.st!=="ordered")].forEach((c,i)=>{
+    const r=c.st==="wait"||c.st==="ok"?c.ret:null;
+    h+=`<div class="li"><div><b>${i+1}. ${c.name}</b><span class="a">${c.addr}${r&&q(r)?` · <span class="ret">возврат ${retWhat(r)}</span>`:""}</span></div>${
+      c.st==="ok"?`<span class="st ok">✓ ${c.time}</span>`:c.st==="wait"?`<span class="st go">Ждём кафе</span>`:c===nxt?`<span class="st go">Едем сейчас</span>`:c.st==="ordered"?`<span class="st no">Впереди</span>`:`<span class="st ok">✓ готово</span>`}</div>`;
+  });
+  return h+`</div>`;
+}
+
+/* ========== НАКЛАДНАЯ ========== */
+function invoice(id){
+  const c=byId(id);
+  $("#sheet").innerHTML=`<div class="inv" role="dialog" aria-label="Накладная">
+    <div class="hd"><span class="logo">PANINO</span><span class="num" style="font-size:13px">Накладная №${c.no}</span></div>
+    <div class="meta">${new Date().toLocaleDateString("ru-RU")} · <b>${c.name}</b>, ${c.addr}</div>
+    <table class="num"><thead><tr><th>Наименование</th><th class="c">Кол-во</th><th class="c">Цена</th><th class="r">Сумма</th></tr></thead><tbody>
+    ${P.map(p=>`<tr><td>${p.name}</td><td class="c">${c.order[p.id]}</td><td class="c">${PRICE}</td><td class="r">${(c.order[p.id]*PRICE).toLocaleString("ru-RU")}</td></tr>`).join("")}</tbody></table>
+    <div class="ln num"><span>Итого</span><span>${rub(sum(c.order))}</span></div>
+    ${q(c.ret)?`<div class="ln num ret"><span>Возврат ${q(c.ret)} шт</span><span>−${rub(sum(c.ret))}</span></div>`:""}
+    <div class="pay num"><span>К оплате</span><span>${rub(pay(c))}</span></div>
+    <div class="sg"><div>Сдал<b>✓ Курьер Магомед</b>${c.time}</div><div>Принял<b>✓ ${c.name}</b>в боте</div></div>
+    <p class="sub" style="margin-top:10px">Накладная сама пришла кафе и владельцу. Писать от руки не нужно.</p>
+    <button class="btn line" data-act="close">Закрыть</button></div>`;
+  $("#sheet").hidden=false;
+}
+
+function render(){
+  document.querySelectorAll(".roles button").forEach(b=>b.setAttribute("aria-selected",b.dataset.role===S.role));
+  const n=CAFES.filter(c=>c.st==="ordered").length,bd=$("#cour-badge");bd.hidden=!n;bd.textContent=n;
+  $("#view").innerHTML=S.role==="owner"?vOwner():S.role==="cafe"?vCafe():vCourier();
+}
+// Поиск перерисовывает только таблицу, чтобы поле ввода не теряло фокус
+document.addEventListener("input",e=>{if(e.target.id==="own-q"){S.qs=e.target.value;S.pick=0;$("#ot").innerHTML=ownerTable()}});
+document.addEventListener("change",e=>{if(e.target.id==="cafe-pick"){S.cafe=+e.target.value;S.cart={cl:0,pe:0};render()}});
+document.addEventListener("click",e=>{
+  if(e.target.id==="sheet"){$("#sheet").hidden=true;return}
+  if(e.target.id==="restart"){location.reload();return}
+  const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.role){S.role=b.dataset.role;render();scrollTo(0,0);return}
+  const a=b.dataset.act,d=+b.dataset.d;
+  if(a==="n"){const k=b.dataset.k;
+    if(k.includes(":")){const[id,p]=k.split(":"),c=byId(id);c.ret[p]=Math.min(c.order[p],Math.max(0,c.ret[p]+d))}
+    else S.cart[k]=Math.max(0,S.cart[k]+d)}
+  if(a==="order"){const c=byId(S.cafe);c.order={...S.cart};c.ret={cl:0,pe:0};c.st="ordered";c.no=S.nextNo++;c.queue=++S.queue;S.cart={cl:0,pe:0};toast("Заказ отправлен. Он уже у курьера и у владельца")}
+  if(a==="edit"){const c=byId(S.cafe);S.cart={...c.order};c.order=null;c.st="none"}
+  if(a==="done"){const c=byId(b.dataset.id);c.st="wait";c.time=now();S.cafe=c.id;toast("Кафе получило вопрос «Всё верно?» — откройте вкладку «Кафе»")}
+  if(a==="confirm"){const c=byId(S.cafe);c.st="ok";c.hist.unshift({no:c.no,time:c.time,order:{...c.order},ret:{...c.ret},pay:pay(c)});render();invoice(c.id);return}
+  if(a==="demo-fill"){CAFES.forEach((c,i)=>{if(c.st!=="none")return;c.order={cl:6+(i*3)%8,pe:2+(i*5)%7};c.ret={cl:0,pe:0};c.st="ordered";c.no=S.nextNo++;c.queue=++S.queue});toast("Все 10 кафе заказали — маршрут готов")}
+  if(a==="again"){const c=byId(S.cafe);c.order=null;c.ret={cl:0,pe:0};c.st="none"}
+  if(a==="flt"){S.f=b.dataset.id;S.pick=0}
+  if(a==="pickcafe"){S.pick=S.pick===+b.dataset.id?0:+b.dataset.id}
+  if(a==="reset"){S.f="all";S.qs="";S.pick=0}
+  if(a==="inv"){invoice(b.dataset.id);return}
+  if(a==="close"){$("#sheet").hidden=true;return}
+  render();
+});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")$("#sheet").hidden=true});
+$("#today").textContent=new Date().toLocaleDateString("ru-RU",{day:"numeric",month:"long"});
+render();
+</script>
+
+</html>
