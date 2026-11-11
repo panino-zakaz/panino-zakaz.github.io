@@ -7,6 +7,8 @@
 <style>body{margin:0}img{max-width:100%}</style>
 <title>Snack Box Заказы</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<script src="vendor/leaflet/leaflet.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Forum&family=Golos+Text:wght@400;500;600;700&display=swap">
@@ -201,6 +203,16 @@ a.btn.maplink{display:block;text-align:center;text-decoration:none;margin-top:10
 .foot button{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 14px;font-weight:600;font-size:13px;color:var(--ink)}
 @media (max-width:520px){.sum b{font-size:22px} th,td{padding:11px 4px} th:first-child,td:first-child{padding-left:10px} th:last-child,td:last-child{padding-right:10px}
   td:first-child{width:auto} .th-img{width:26px;height:26px} table{font-size:13px} .lnk{font-size:12px} td .st{font-size:11px;padding:2px 6px}}
+/* Карта */
+.mapbox{height:320px;border-radius:18px;overflow:hidden;border:1px solid var(--line);margin-top:10px;position:relative;isolation:isolate;z-index:0;background:var(--head)}
+.pin-ic span{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#8C8279;color:#fff;font:700 13px/1 var(--f-body);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.pin-ic.go span{background:#E07A12}
+.pin-ic.ok span{background:#2F8A3B}
+.pin-ic.base span{background:#1F1B17}
+.map-legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted);margin-top:8px}
+.map-legend .lg{display:inline-block;width:12px;height:12px;border-radius:50%;background:#8C8279;margin-right:6px;vertical-align:-1px;border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
+.map-legend .lg.go{background:#E07A12}.map-legend .lg.ok{background:#2F8A3B}
+.leaflet-popup-content{font:14px/1.4 var(--f-body)}
 </style>
 
 <div class="app">
@@ -278,6 +290,10 @@ function vOwner(){
     <div class="box"><i class="ki c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-4"/></svg></i><span>Вернули</span><b class="num ret">${q(ret)} шт</b><span class="num">Классика ${ret.cl} · Пепперони ${ret.pe}</span></div>
     <div class="box"><i class="ki d"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="13" rx="2"/><circle cx="12" cy="12.5" r="2.5"/></svg></i><span>Заплатят</span><b class="num">${rub(money)}</b></div></div>
 
+  <h2>Кафе на карте</h2><p class="sub">Махачкала · метка = кафе, «Ц» — цех. Нажмите «на карте» у кафе в таблице — карта покажет его.</p>
+  <div id="map-owner" class="mapbox" role="region" aria-label="Карта кафе"></div>
+  <div class="map-legend"><span><i class="lg go"></i>ждёт доставку</span><span><i class="lg ok"></i>получили</span><span><i class="lg"></i>нет заказа</span></div>
+
   <div class="tools">
     <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
       <input id="own-q" type="search" placeholder="Найти кафе или улицу" value="${S.qs.replace(/"/g,"&quot;")}" autocomplete="off"></label>
@@ -305,7 +321,7 @@ function ownerTable(){
     <th>Кафе</th>${thumbs()}<th class="c">Назад</th><th class="r">Сумма</th>
   </tr></thead><tbody>`;
   L.forEach(c=>{const ok=c.st==="ok",o=c.order,p=retPct(c);
-    h+=`<tr class="${ok?"done":""}"><td><b>${c.name}</b><span class="addr">${c.addr}</span>${status(c)}${p!==null?`<span class="addr">возвраты всего: <span class="${p>=10?"ret":""}">${p}%</span></span>`:""}</td>
+    h+=`<tr class="${ok?"done":""}"><td><b>${c.name}</b><span class="addr">${c.addr} · <button class="lnk" data-act="map-focus" data-id="${c.id}">на карте</button></span>${status(c)}${p!==null?`<span class="addr">возвраты всего: <span class="${p>=10?"ret":""}">${p}%</span></span>`:""}</td>
     ${P.map(pr=>`<td class="c">${o?o[pr.id]:`<span class="dash">—</span>`}${ok&&c.ret[pr.id]?`<span class="rsub">−${c.ret[pr.id]}</span>`:""}</td>`).join("")}
     <td class="c">${ok?(q(c.ret)?`<span class="ret">${q(c.ret)}</span>`:"0"):`<span class="dash">—</span>`}</td>
     <td class="r">${ok?`<button class="lnk" data-act="inv" data-id="${c.id}">${rub(pay(c))}</button>`:o?`<span class="addr">${rub(sum(o))}</span>`:`<span class="dash">—</span>`}</td></tr>`});
@@ -368,7 +384,8 @@ function vCourier(){
     <button class="btn" data-act="demo-fill">Показать пример: все 10 кафе заказали</button>`;
   if(todo.length){
     h+=`<h2>Маршрут в Яндекс.Картах</h2><p class="sub">Точки в порядке объезда от цеха. Откроются Яндекс.Карты с готовым маршрутом.</p>
-      <a class="btn maplink" href="${ymRoute(todo.filter(pt))}" target="_blank" rel="noopener">Маршрут по всем точкам (${todo.filter(pt).length})</a>`;
+      <a class="btn maplink" href="${ymRoute(todo.filter(pt))}" target="_blank" rel="noopener">Маршрут по всем точкам (${todo.filter(pt).length})</a>
+      <div id="map-courier" class="mapbox" role="region" aria-label="Карта маршрута"></div>`;
   }
   if(nxt){
     h+=`<h2>Следующая точка</h2><p class="sub">Осталось развезти: ${todo.length}</p>
@@ -415,6 +432,41 @@ function render(){
   document.querySelectorAll(".roles button").forEach(b=>b.setAttribute("aria-selected",b.dataset.role===S.role));
   const n=CAFES.filter(c=>c.st==="ordered").length,bd=$("#cour-badge");bd.hidden=!n;bd.textContent=n;
   $("#view").innerHTML=S.role==="owner"?vOwner():S.role==="cafe"?vCafe():vCourier();
+  initMaps();
+}
+
+// ---------- Карта Махачкалы (OpenStreetMap, бесплатно, без ключа и рекламы) ----------
+const TILE="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+const TILE_ATTR='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
+const pinIcon=(label,kind)=>L.divIcon({className:"pin-ic "+(kind||""),html:`<span>${label}</span>`,iconSize:[30,30],iconAnchor:[15,15],popupAnchor:[0,-14]});
+function makeMap(el){
+  const m=L.map(el,{scrollWheelZoom:false,tap:true});
+  L.tileLayer(TILE,{attribution:TILE_ATTR,subdomains:"abc",maxZoom:19}).addTo(m);
+  L.marker(BASE_POINT,{icon:pinIcon("Ц","base")}).addTo(m).bindPopup("<b>Цех</b><br>отсюда выезжает курьер");
+  return m;
+}
+function initMaps(){
+  if(!window.L) return; // карта не загрузилась (нет интернета) — остальное работает
+  const eo=$("#map-owner");
+  if(eo){
+    const m=makeMap(eo), mk={};
+    CAFES.forEach((c,i)=>{
+      const p=pt(c); if(!p) return;
+      const kind=c.st==="ok"?"ok":(c.st==="ordered"||c.st==="wait")?"go":"";
+      mk[c.id]=L.marker(p,{icon:pinIcon(i+1,kind)}).addTo(m).bindPopup(`<b>${i+1}. ${c.name}</b><br>${c.addr}`);
+    });
+    const f=S.mapFocus&&mk[S.mapFocus];
+    if(f){m.setView(f.getLatLng(),16);f.openPopup()}
+    else m.fitBounds(L.latLngBounds([BASE_POINT,...Object.values(mk).map(x=>x.getLatLng())]),{padding:[26,26]});
+  }
+  const ec=$("#map-courier");
+  if(ec){
+    const todo=byRoute(CAFES.filter(c=>c.st==="ordered")).filter(pt);
+    const m=makeMap(ec), line=[BASE_POINT];
+    todo.forEach((c,i)=>{L.marker(pt(c),{icon:pinIcon(i+1,i===0?"go":"")}).addTo(m).bindPopup(`<b>${i+1}. ${c.name}</b><br>${c.addr}`);line.push(pt(c))});
+    L.polyline(line,{color:"#C8261F",weight:3,opacity:.75,dashArray:"6 8"}).addTo(m);
+    m.fitBounds(L.latLngBounds(line),{padding:[26,26]});
+  }
 }
 // Поиск перерисовывает только таблицу, чтобы поле ввода не теряло фокус
 document.addEventListener("input",e=>{if(e.target.id==="own-q"){S.qs=e.target.value;S.pick=0;$("#ot").innerHTML=ownerTable()}});
@@ -435,7 +487,8 @@ document.addEventListener("click",e=>{
   if(a==="demo-fill"){CAFES.forEach((c,i)=>{if(c.st!=="none")return;c.order={cl:6+(i*3)%8,pe:2+(i*5)%7};c.ret={cl:0,pe:0};c.st="ordered";c.no=S.nextNo++;c.queue=++S.queue});toast("Все 10 кафе заказали — маршрут готов")}
   if(a==="again"){const c=byId(S.cafe);c.order=null;c.ret={cl:0,pe:0};c.st="none"}
   if(a==="flt"){S.f=b.dataset.id;S.pick=0}
-  if(a==="pickcafe"){S.pick=S.pick===+b.dataset.id?0:+b.dataset.id}
+  if(a==="pickcafe"){S.pick=S.pick===+b.dataset.id?0:+b.dataset.id;S.mapFocus=S.pick}
+  if(a==="map-focus"){S.mapFocus=+b.dataset.id;render();const el=$("#map-owner");if(el)el.scrollIntoView({behavior:"smooth",block:"center"});return}
   if(a==="reset"){S.f="all";S.qs="";S.pick=0}
   if(a==="inv"){invoice(b.dataset.id);return}
   if(a==="close"){$("#sheet").hidden=true;return}
